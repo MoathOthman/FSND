@@ -42,6 +42,7 @@ class Venue(db.Model):
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     shows = db.relationship('Show', backref='venue', lazy=True)
+    genres = db.Column(db.ARRAY(db.String()))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -56,6 +57,7 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    genres = db.Column(db.ARRAY(db.String()))
     shows = db.relationship('Show', backref='artist', lazy=True)
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -239,7 +241,7 @@ def create_venue_submission():
     genres = data['genres']
     facebook_link = data['facebook_link']
 
-    venue = Venue(name=name, city=city, state=state, address=address, phone=phone, facebook_link=facebook_link)
+    venue = Venue(name=name, city=city, state=state, address=address, phone=phone, facebook_link=facebook_link, genres=genres)
     db.session.add(venue)
     db.session.commit()
   except:
@@ -281,7 +283,10 @@ def artists():
     "id": 6,
     "name": "The Wild Sax Band",
   }]
-  return render_template('pages/artists.html', artists=data)
+
+  artists = Artist.query.all()
+
+  return render_template('pages/artists.html', artists=artists)
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
@@ -303,7 +308,7 @@ def show_artist(artist_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   data1={
-    "id": 4,
+    "id": 2,
     "name": "Guns N Petals",
     "genres": ["Rock n Roll"],
     "city": "San Francisco",
@@ -373,8 +378,11 @@ def show_artist(artist_id):
     "past_shows_count": 0,
     "upcoming_shows_count": 3,
   }
-  data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_artist.html', artist=data)
+  # data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
+
+  artist = Artist.query.get(artist_id)
+  print(artist)
+  return render_template('pages/show_artist.html', artist=artist)
 
 #  Update
 #  ----------------------------------------------------------------
@@ -447,10 +455,10 @@ def create_artist_submission():
     city = data['city']
     state = data['state']
     phone = data['phone']
-    genres = data['genres']
+    genres = request.form.getlist('genres')
     facebook_link = data['facebook_link']
-
-    artist = Artist(name=name, city=city, state=state, phone=phone, facebook_link=facebook_link)
+    print(f"single genere {genres}")
+    artist = Artist(name=name, city=city, state=state,genres=genres, phone=phone, facebook_link=facebook_link)
     db.session.add(artist)
     db.session.commit()
   except Exception as e:
