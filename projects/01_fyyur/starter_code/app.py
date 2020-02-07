@@ -44,7 +44,14 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
     shows = db.relationship('Show', backref='venue', lazy=True)
     genres = db.Column(db.ARRAY(db.String()))
-
+    def to_dict(self):
+      class_vars = vars(Venue)  # get any "default" attrs defined at the class level
+      inst_vars = vars(self)  # get any attrs defined on the instance (self)
+      all_vars = dict(class_vars)
+      all_vars.update(inst_vars)
+      # filter out private attributes
+      public_vars = {k: v for k, v in all_vars.items() if not k.startswith('_')}
+      return public_vars
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
@@ -60,6 +67,14 @@ class Artist(db.Model):
     facebook_link = db.Column(db.String(120))
     genres = db.Column(db.ARRAY(db.String()))
     shows = db.relationship('Show', backref='artist', lazy=True)
+    def to_dict(self):
+      class_vars = vars(Artist)  # get any "default" attrs defined at the class level
+      inst_vars = vars(self)  # get any attrs defined on the instance (self)
+      all_vars = dict(class_vars)
+      all_vars.update(inst_vars)
+      # filter out private attributes
+      public_vars = {k: v for k, v in all_vars.items() if not k.startswith('_')}
+      return public_vars
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
@@ -147,7 +162,6 @@ def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  
 
   searchterm = request.form.get('search_term', '')
   venues = Venue.query.filter(Venue.name.like(searchterm))
@@ -249,10 +263,29 @@ def show_venue(venue_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
-  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
+  # data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
   
   venues = Venue.query.get(venue_id)
-  return render_template('pages/show_venue.html', venue=venues)
+  upcommingShows = Show.query.filter(and_(Show.start_time > datetime.now())).all()
+  upcommingshowscount = len(upcommingShows)
+  pastShows = Show.query.filter(and_(Show.start_time <= datetime.now())).all()
+  pastshowscount = len(pastShows)
+
+  def showWithArtist(show):
+    return {'artist_id': show.artist.id, 'artist_name': show.artist.name, 'artist_image_link': show.artist.image_link, 'start_time': f"{show.start_time}"}
+  print(f"vebues {venues.to_dict()}")
+  
+  mappedPastShows = map(showWithArtist, pastShows)
+  mappedUpcommingShows = map(showWithArtist, upcommingShows)
+
+  response={
+    **venues.to_dict(),
+    "past_shows": mappedPastShows,
+    "upcoming_shows": mappedUpcommingShows,
+    "past_shows_count": pastshowscount,
+    "upcoming_shows_count": upcommingshowscount,
+  }
+  return render_template('pages/show_venue.html', venue=response)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -271,7 +304,7 @@ def create_venue_submission():
     state = data['state']
     address = data['address']
     phone = data['phone']
-    genres = data['genres']
+    genres = request.form.getlist('genres')
     facebook_link = data['facebook_link']
     image_link = "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
 
@@ -415,8 +448,28 @@ def show_artist(artist_id):
   # data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
 
   artist = Artist.query.get(artist_id)
+
+  upcommingShows = Show.query.filter(and_(Show.start_time > datetime.now())).all()
+  upcommingshowscount = len(upcommingShows)
+  pastShows = Show.query.filter(and_(Show.start_time <= datetime.now())).all()
+  pastshowscount = len(pastShows)
+
+  def showWithArtist(show):
+    return {'venue_id': show.venue.id, 'venue_name': show.venue.name, 'venue_image_link': show.venue.image_link, 'start_time': f"{show.start_time}"}
+  print(f"vebues {artist.to_dict()}")
+  
+  mappedPastShows = map(showWithArtist, pastShows)
+  mappedUpcommingShows = map(showWithArtist, upcommingShows)
+
+  response={
+    **artist.to_dict(),
+    "past_shows": mappedPastShows,
+    "upcoming_shows": mappedUpcommingShows,
+    "past_shows_count": pastshowscount,
+    "upcoming_shows_count": upcommingshowscount,
+  }
   print(artist)
-  return render_template('pages/show_artist.html', artist=artist)
+  return render_template('pages/show_artist.html', artist=response)
 
 #  Update
 #  ----------------------------------------------------------------
