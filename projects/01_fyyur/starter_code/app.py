@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+from sqlalchemy import and_, or_, not_
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -120,22 +121,52 @@ def venues():
       "num_upcoming_shows": 0,
     }]
   }]
-  return render_template('pages/venues.html', areas=data);
+  # get all venues, loop through venues , get shows for venues, add num_upcoming_shows.
+
+  def withnum(venue):
+    showsCount = Show.query.filter(
+      and_(
+        Show.venue_id == venue.id,
+        Show.start_time > datetime.now()
+       )).count()
+    return {'id': venue.id, "name": venue.name, "num_upcoming_shows": showsCount}
+  venues = Venue.query.all()
+  mappedVenues = map(withnum,venues)
+  mappedWithArea = [{
+    "city": "New York",
+    "state": "NY",
+    "venues": mappedVenues
+  }]
+
+  # print(f"mapped venues {list(mappedVenues)}")
+
+  return render_template('pages/venues.html', areas=mappedWithArea);
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+  
+
+  searchterm = request.form.get('search_term', '')
+  venues = Venue.query.filter(Venue.name.like(searchterm))
+  def withnum(venue):
+    showsCount = Show.query.filter(
+      and_(
+        Show.venue_id == venue.id,
+        Show.start_time > datetime.now()
+       )).count()
+    return {'id': venue.id, "name": venue.name, "num_upcoming_shows": showsCount}
+  venues = Venue.query.filter(Venue.name.ilike(f"%{searchterm}%")).all()
+  mappedVenues = map(withnum,venues)
+
   response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+      "count": 1,
+      "data": mappedVenues
+    }
+
+  return render_template('pages/search_venues.html', results=response, search_term=searchterm)
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
@@ -219,7 +250,9 @@ def show_venue(venue_id):
     "upcoming_shows_count": 1,
   }
   data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_venue.html', venue=data)
+  
+  venues = Venue.query.get(venue_id)
+  return render_template('pages/show_venue.html', venue=venues)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -240,8 +273,9 @@ def create_venue_submission():
     phone = data['phone']
     genres = data['genres']
     facebook_link = data['facebook_link']
+    image_link = "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
 
-    venue = Venue(name=name, city=city, state=state, address=address, phone=phone, facebook_link=facebook_link, genres=genres)
+    venue = Venue(image_link=image_link,name=name, city=city, state=state, address=address, phone=phone, facebook_link=facebook_link, genres=genres)
     db.session.add(venue)
     db.session.commit()
   except:
@@ -457,8 +491,9 @@ def create_artist_submission():
     phone = data['phone']
     genres = request.form.getlist('genres')
     facebook_link = data['facebook_link']
+    image_link = "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60"
     print(f"single genere {genres}")
-    artist = Artist(name=name, city=city, state=state,genres=genres, phone=phone, facebook_link=facebook_link)
+    artist = Artist(image_link=image_link,name=name, city=city, state=state,genres=genres, phone=phone, facebook_link=facebook_link)
     db.session.add(artist)
     db.session.commit()
   except Exception as e:
@@ -529,7 +564,21 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
-
+  try:
+    form = request.form 
+    print(f"show form {form}")
+    artist = Artist.query.get(form['artist_id'])
+    venue = Venue.query.get(form['venue_id'])
+    show = Show(start_time=form['start_time'])
+    show.artist = artist 
+    show.venue = venue
+    db.session.add(show)
+    db.session.commit()
+  except Exception as e:
+    print(f"exception {e}")
+    db.session.rollback()
+  finally:
+    db.session.close()
   # on successful db insert, flash success
   flash('Show was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
