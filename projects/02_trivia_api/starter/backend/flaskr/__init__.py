@@ -4,9 +4,30 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-from models import setup_db, Question, Category
+from models import setup_db, Question, Category, db
 
 QUESTIONS_PER_PAGE = 10
+Categories_PER_PAGE = 10
+
+def paginate_questions(request, selection):
+  page = request.args.get('page', 1, type=int)
+  start =  (page - 1) * QUESTIONS_PER_PAGE
+  end = start + QUESTIONS_PER_PAGE
+
+  questions = [question.format() for question in selection]
+  current_questions = questions[start:end]
+
+  return current_questions
+
+def paginate_categories(request, selection):
+  page = request.args.get('page', 1, type=int)
+  start =  (page - 1) * Categories_PER_PAGE
+  end = start + Categories_PER_PAGE
+
+  categories = [category.format() for category in selection]
+  current_categories = categories[start:end]
+
+  return current_categories
 
 def create_app(test_config=None):
   # create and configure the app
@@ -16,17 +37,141 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
+  cors = CORS(app, resources={r"/*": {"origins": "*"}}) 
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
+# CORS Headers 
+  @app.after_request
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials','true'  )
+    return response
 
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route('/categories')
+  def retrieve_categories():
+    selection = Category.query.order_by(Category.id).all()
+    current_categories = paginate_categories(request, selection)
 
+    if len(current_categories) == 0:
+      abort(404)
+
+    return jsonify({
+      'success': True,
+      'categories': current_categories,
+      'total_categories': len(Category.query.all())
+    })
+
+  @app.route('/questions')
+  def retrieve_questions():
+    selection = Question.query.order_by(Question.id).all()
+    current_questions = paginate_questions(request, selection)
+    catselection = Category.query.order_by(Category.id).all()
+    catcurrent_categories = paginate_categories(request, catselection)
+    current_cateogry = catcurrent_categories[0] 
+
+    if len(current_questions) == 0:
+      abort(404)
+
+    return jsonify({
+      'success': True,
+      'questions': current_questions,
+      'current_category': current_cateogry,
+      'categories': catcurrent_categories,
+      'total_questions': len(Question.query.all())
+    })
+  
+  @app.route('/questions/search', methods=['POST'])
+  def search_questions():
+    body = request.get_json()
+    searchTerm = body.get('searchTerm', None)
+
+    try:
+      questions = Question.query.filter(Question.question.ilike(f"%{searchTerm}%")).all()
+      _questions = [question.format() for question in questions]
+
+      return jsonify({
+        'success': True,
+        'questions': _questions
+      })
+    except:
+      abort(404)
+
+  @app.route('/questions', methods=['POST'])
+  def create_question():
+    body = request.get_json()
+
+    difficulty = body.get('difficulty', None)
+    question = body.get('question', None)
+    answer = body.get('answer', None)
+    category = body.get('category', None)
+
+    try:
+      book = Question(question=question, answer=answer, category=category, difficulty=difficulty)
+      book.insert()
+
+      selection = Question.query.order_by(Question.id).all()
+      current_books = paginate_questions(request, selection)
+
+      return jsonify({
+        'success': True,
+        'created': book.id,
+        'questions': current_books,
+        'total_questions': len(Question.query.all())
+      })
+
+    except:
+      abort(422)
+
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  def delete_questions(question_id):
+    try:
+      question = Question.query.get(question_id)
+      question.delete()
+      return jsonify({
+        "success": True,
+        "message": "Successfully deleted"
+      })
+    except:
+      abort(500)
+
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
+  def questions_by_category(category_id):
+    try:
+      category = Category.query.get(category_id)
+      questions = Question.query.filter(Question.category.like(category.id))
+      _questions = [question.format() for question in questions]
+      return jsonify({
+        "success": True,
+        "questions": _questions,
+        "total_questions": len(questions),
+        'current_category': category.format()
+      })
+    except:
+      abort(500)
+
+  @app.errorhandler(404)
+  def handle404(error):
+      return jsonify({
+          "success": False, 
+          "message": "resource not found",
+          "error": 404
+      }), 404
+
+  @app.errorhandler(500)
+  def handle404(error):
+      return jsonify({
+          "success": False, 
+          "message": "Internal server error",
+          "error": 500
+      }), 500
 
   '''
   @TODO: 
