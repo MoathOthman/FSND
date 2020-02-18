@@ -73,7 +73,7 @@ class QuizView extends Component {
         return;
       },
       error: (error) => {
-        alert('Unable to load question. Please try your request again')
+        alert('next question, Unable to load question. Please try your request again')
         return;
       }
     })
@@ -113,7 +113,7 @@ class QuizView extends Component {
                       key={id}
                       value={id}
                       className="play-category"
-                      onClick={() => this.selectCategory({type:this.state.categories[id].type, id})}>
+                      onClick={() => this.selectCategory({type:this.state.categories[id].type, id: this.state.categories[id].id})}>
                       {this.state.categories[id].type}
                     </div>
                   )
@@ -135,6 +135,9 @@ class QuizView extends Component {
   evaluateAnswer = () => {
     const formatGuess = this.state.guess.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase()
     const answerArray = this.state.currentQuestion.answer.toLowerCase().split(' ');
+
+    console.log(`format gues ${formatGuess}, anssd ${answerArray}`);
+    
     return answerArray.includes(formatGuess)
   }
 
