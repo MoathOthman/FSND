@@ -179,7 +179,7 @@ def create_app(test_config=None):
     try:
       questions = Question.query.filter(Question.question.ilike(f"%{searchTerm}%")).all()
       _questions = [question.format() for question in questions]
-
+      print(_questions)
       return jsonify({
         'success': True,
         'questions': _questions
