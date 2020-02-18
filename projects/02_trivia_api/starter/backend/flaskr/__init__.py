@@ -38,7 +38,7 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-  cors = CORS(app, resources={r"/*": {"origins": "*"}}) 
+  CORS(app, resources={r"/*": {"origins": "*"}}) 
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
@@ -89,10 +89,14 @@ def create_app(test_config=None):
     current_questions = paginate_questions(request, selection)
     catselection = Category.query.order_by(Category.id).all()
     catcurrent_categories = paginate_categories(request, catselection)
-    current_cateogry = catcurrent_categories[0] 
 
     if len(current_questions) == 0:
       abort(404)
+
+    if len(catcurrent_categories) == 0:
+      abort(404)
+
+    current_cateogry = catcurrent_categories[0] 
 
     return jsonify({
       'success': True,
@@ -103,7 +107,7 @@ def create_app(test_config=None):
     })
 
   '''
-  @TODO: 
+  @TODO:  TESTEd
   Create an endpoint to DELETE question using a question ID. 
 
   TEST: When you click the trash icon next to a question, the question will be removed.
@@ -119,7 +123,7 @@ def create_app(test_config=None):
         "message": "Successfully deleted"
       })
     except:
-      abort(500)
+      abort(422)
 
   '''
   @TODO: 
@@ -264,8 +268,16 @@ def create_app(test_config=None):
           "error": 404
       }), 404
 
+  @app.errorhandler(422)
+  def handle422(error):
+      return jsonify({
+          "success": False, 
+          "message": "resource not found",
+          "error": 422
+      }), 422
+  
   @app.errorhandler(500)
-  def handle404(error):
+  def handle500(error):
       return jsonify({
           "success": False, 
           "message": "Internal server error",

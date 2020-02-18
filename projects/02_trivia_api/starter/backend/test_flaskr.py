@@ -28,7 +28,57 @@ class TriviaTestCase(unittest.TestCase):
     def tearDown(self):
         """Executed after reach test"""
         pass
+    
+    """
+        Test Questions 
+    """
+    def test_get_paginated_questions(self):
+        result = self.client().get('/questions')
+        data = json.loads(result.data)
+        print(data['success'])
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(len(data['questions']))
+        self.assertTrue(len(data['categories']))
 
+    def test_404_sent_requesting_beyond_valid_page(self):
+        res = self.client().get('/questions?page=1000')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'resource not found')
+
+    def test_422_when_trying_to_delete_non_existent_question(self):
+        res = self.client().delete('/questions/121212')
+        data = json.loads(res.data)
+        self.assertFalse(data['success'])
+        self.assertEqual(res.status_code, 422)
+    
+    def test_post_new_question(self):
+        res = self.client().post('/questions', json={'difficulty': 2, 'question' : 'how dy?', 'answer': 'cool', 'category': '3'})
+        data = json.loads(res.data)
+        print(data['questions'][-1])
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['success'])
+
+    """
+        Test Categories
+    """
+    def test_get_paginated_categories(self):
+        result = self.client().get('/categories')
+        data = json.loads(result.data)
+        self.assertEqual(result.status_code, 200)
+        self.assertTrue(len(data['categories']))
+        self.assertTrue(data['success'])
+
+    def test_404_sent_Requesting_beyong_valid_category_page(self):
+        res = self.client().get('/categories?page=21212')
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(data['success'])
+    
     """
     TODO
     Write at least one test for each test for successful operation and for expected errors.
