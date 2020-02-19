@@ -199,7 +199,7 @@ def create_app(test_config=None):
   def questions_by_category(category_id):
     try:
       category = Category.query.get(category_id)
-      questions = Question.query.filter(Question.category.like(category.id))
+      questions = Question.query.filter(Question.category == category.id).all()
       _questions = [question.format() for question in questions]
       return jsonify({
         "success": True,
@@ -207,7 +207,8 @@ def create_app(test_config=None):
         "total_questions": len(questions),
         'current_category': category.format()
       })
-    except:
+    except Exception as e:
+      print(f"exception {e}")
       abort(500)
 
   '''
@@ -249,6 +250,7 @@ def create_app(test_config=None):
           'question': None
         })
       return jsonify({
+        'success': True,
         'question': question.format()
       })
     except Exception as e:

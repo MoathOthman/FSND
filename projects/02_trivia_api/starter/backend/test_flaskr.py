@@ -35,7 +35,6 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_paginated_questions(self):
         result = self.client().get('/questions')
         data = json.loads(result.data)
-        print(data['success'])
         self.assertEqual(result.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertTrue(len(data['questions']))
@@ -61,7 +60,10 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(len(data['questions']))
         self.assertTrue(data['success'])
-
+    
+    """
+        Search Term 
+    """
     def test_search_for_question(self):
         res = self.client().post('/questions/search', json={'searchTerm': 'entitled'})
         data = json.loads(res.data)
@@ -92,6 +94,32 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 404)
         self.assertFalse(data['success'])
+    
+    def test_questions_by_category_should_return_results_When_cat_is_Available(self):
+        res = self.client().get('/categories/1/questions')
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertIsNotNone(data['current_category'])
+    def test_questions_by_category_should_return_500_error_When_cat_is_not_Available(self):
+        res = self.client().get('/categories/111111/questions')
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 500)
+        self.assertFalse(data['success'])
+
+    def test_next_quizz_question_when_general_cat_must_return_next_question(self):
+        res = self.client().post('/quizzes', json={'previous_questions': [], 'quiz_category': {'type': 'click', 'id': 0}})
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertIsNotNone(data['question'])
+
+    def test_next_quizz_question_when_cat_not_correct_must_return_failure(self):
+        res = self.client().post('/quizzes', json={'previous_questions': [], 'quiz_category': {'type': 'click', 'id': 1111111}})
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(data['success'])
+        self.assertIsNone(data['question'])
     
     """
     TODO
