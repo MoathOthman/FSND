@@ -17,7 +17,6 @@ def paginate_questions(request, selection):
 
   questions = [question.format() for question in selection]
   current_questions = questions[start:end]
-
   return current_questions
 
 def paginate_categories(request, selection):
@@ -88,21 +87,22 @@ def create_app(test_config=None):
     selection = Question.query.order_by(Question.id).all()
     current_questions = paginate_questions(request, selection)
     catselection = Category.query.order_by(Category.id).all()
-    catcurrent_categories = paginate_categories(request, catselection)
+    categories = [category.format() for category in catselection]
+
 
     if len(current_questions) == 0:
       abort(404)
 
-    if len(catcurrent_categories) == 0:
-      abort(404)
+    if len(categories) == 0:
+      abort(422)
 
-    current_cateogry = catcurrent_categories[0] 
+    current_cateogry = categories[0] 
 
     return jsonify({
       'success': True,
       'questions': current_questions,
       'current_category': current_cateogry,
-      'categories': catcurrent_categories,
+      'categories': categories,
       'total_questions': len(Question.query.all())
     })
 
@@ -286,6 +286,14 @@ def create_app(test_config=None):
           "error": 500
       }), 500
   
+  @app.errorhandler(400)
+  def handle400(error):
+      return jsonify({
+          "success": False, 
+          "message":f"Bad request {error}",
+          "error": 400
+      }), 400
+
   return app
 
     
