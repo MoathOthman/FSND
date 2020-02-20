@@ -163,6 +163,14 @@ POST '/quizzes'
 ```
 
 
+# running the Front End 
+
+```
+cd  frontend
+yarn install 
+yarn start
+```
+
 ## Testing
 To run the tests, run
 ```
