@@ -10,7 +10,7 @@ Follow instructions [here](https://packaging.python.org/guides/installing-using-
 
 ### Install Dependencies
 
-Run `pip install -r requirements.txt` to install any dependencies.
+Run `pip3 install -r requirements.txt` to install any dependencies.
 
 ### Install Postman
 

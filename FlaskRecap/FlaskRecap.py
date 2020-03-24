@@ -16,6 +16,10 @@ greetings = {
 def greeting_all():
     return jsonify({'greetings': greetings})
 
+@app.route('/login-results', methods=['GET'])
+def login_results():
+    return jsonify({'greetings': greetings})
+
 @app.route('/greeting/<lang>', methods=['GET'])
 def greeting_one(lang):
     print(lang)
