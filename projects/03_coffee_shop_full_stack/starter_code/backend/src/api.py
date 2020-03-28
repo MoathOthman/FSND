@@ -28,6 +28,11 @@ CORS(app)
         or appropriate status code indicating reason for failure
 '''
 
+@app.route('/drinks', methods=['GET'])
+def getDrinks():
+    drinks = Drink.query.order_by(Drink.id).all()
+    drinks_formated = [drink.short() for drink in drinks]
+    return jsonify({"success": True, "drinks": drinks_formated})
 
 '''
 @TODO implement endpoint
@@ -48,6 +53,7 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
         or appropriate status code indicating reason for failure
 '''
+
 
 
 '''
